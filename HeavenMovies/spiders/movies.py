@@ -103,3 +103,4 @@ class MoviesSpider(scrapy.Spider):
             elif current_award:
                 current_award['items'].append(line)
         return result
+
