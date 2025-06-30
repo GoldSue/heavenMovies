@@ -104,3 +104,4 @@ class MoviesSpider(scrapy.Spider):
                 current_award['items'].append(line)
         return result
 
+
