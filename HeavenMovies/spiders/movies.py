@@ -33,76 +33,74 @@ class MoviesSpider(scrapy.Spider):
 
     def parse_detail(self, response: HtmlResponse, item: HeavenmoviesItem):
         raw_lines = response.css('#Zoom ::text').getall()
-        cleaned_lines = [re.sub(r'[\s\u3000\xa0]+', ' ', s).strip() for s in raw_lines if s.strip()]
+        cleaned_lines = [re.sub(r'[\s\u3000\xa0\'◎]+', ' ', s).strip() for s in raw_lines if s.strip()]
         print("清洗后的数据:", cleaned_lines)
 
         parsed_data = self.parse_span_text_list(cleaned_lines)
         print("解析后字典:", parsed_data)
 
-        item['title'] = parsed_data.get('译名', item['title'])
-        item['year'] = self.extract_year(parsed_data.get('年代'))
-        item['director'] = parsed_data.get('导演')
-        item['actors'] = self.extract_list(parsed_data.get('主演'))
-        item['description'] = parsed_data.get('简介')
-        item['awards'] = self.extract_awards(parsed_data.get('获奖情况'))
-        item['magnet_link'] = response.css('#Zoom a[href^="magnet:"]::attr(href)').get()
+        item['title'] = parsed_data.get('title', None)
+        item['year'] = parsed_data.get('year', None)
+        item['region'] = parsed_data.get('region', None)
+        item['language'] = parsed_data.get('language', None)
+        item['genre'] = parsed_data.get('genre', None)
+        item['duration'] = parsed_data.get('duration', None)
+        item['imdb'] = parsed_data.get('imdb', None)
+        item['douban'] = parsed_data.get('douban', None)
+        item['description'] = parsed_data.get('description', None)
+        item['awards'] = parsed_data.get('awards', None)
+
+        # item['title'] = parsed_data.get('title', item['title'])
+        # item['year'] = parsed_data.get('year', item.get('year'))
+        # item['region'] = parsed_data.get('region', item['region'])
+        # item['language'] = parsed_data.get('language', item['language'])
+        # item['genre'] = parsed_data.get('genre', item['genre'])
+        # item['duration'] = parsed_data.get('duration', item['duration'])
+        # item['imdb'] = parsed_data.get('imdb', item['imdb'])
+        # item['douban'] = parsed_data.get('douban', item['douban'])
+        # item['description'] = parsed_data.get('description', item['description'])
+        # item['awards'] = parsed_data.get('awards', item['awards'])
 
         yield item
 
     def parse_span_text_list(self, lines):
         result = {}
-        current_key = None
-        buffer = []
+        n = len(lines)
 
-        for line in lines:
-            # 先处理字段名，如：◎译 名 挚友/朋友
-            match = re.match(r'^◎\s*([\u4e00-\u9fa5A-Za-z]+(?:\s*[\u4e00-\u9fa5A-Za-z]+)?)\s+(.*)', line)
+        for i, line in enumerate(lines):
+            # 提取 title（从带有 .2024. 的文件名中提取）
+            match = re.match(r'^(.*?)\.\d{4}\.', line)
             if match:
-                # 保存前一个字段
-                if current_key:
-                    result[current_key] = '\n'.join(buffer).strip()
-                    buffer = []
-
-                # 处理新字段
-                key = match.group(1).replace(' ', '')  # 移除字段名中的空格，如“译 名”→“译名”
-                value = match.group(2).strip()
-                current_key = key
-                if value:
-                    buffer.append(value)
-            else:
-                if current_key:
-                    buffer.append(line.strip())
-
-        # 处理最后一个字段
-        if current_key and buffer:
-            result[current_key] = '\n'.join(buffer).strip()
+                result["title"] = match.group(1).strip()
+            elif line.startswith("年 代"):
+                m = re.search(r'(\d{4})', line)
+                if m:
+                    result["year"] = m.group(1)
+            elif line.startswith("语 言"):
+                result["language"] = line.replace("语 言", "").strip()
+            elif line.startswith("产 地"):
+                result["region"] = line.replace("产 地", "").strip()
+            elif line.startswith("类 别"):
+                result["genre"] = line.replace("类 别", "").strip()
+            elif "IMDb评分" in line:
+                m = re.search(r'IMDb评分\s*([\d.]+)', line)
+                if m:
+                    result["imdb"] = m.group(1)
+            elif "豆瓣评分" in line:
+                m = re.search(r'豆瓣评分\s*([\d.]+)', line)
+                if m:
+                    result["douban"] = m.group(1)
+            elif line.startswith("片 长"):
+                m = re.search(r'(\d+)\s*分钟', line)
+                if m:
+                    result["duration"] = m.group(1)
+            elif line.strip() == "简 介" and i + 1 < n:
+                result["description"] = lines[i + 1].strip()
+            elif line.strip() == "获奖情况":
+                result["awards"] = lines[i + 1: -1]  # 倒数第1是视频文件名，跳过
 
         return result
 
-    def extract_year(self, text):
-        if not text:
-            return None
-        match = re.search(r'\d{4}', text)
-        return int(match.group()) if match else None
-
-    def extract_list(self, text):
-        if not text:
-            return []
-        return [line.strip() for line in text.split('\n') if line.strip()]
-
-    def extract_awards(self, text):
-        if not text:
-            return []
-        lines = [line.strip() for line in text.split('\n') if line.strip()]
-        result = []
-        current_award = None
-        for line in lines:
-            if re.match(r'^第\d+届', line):
-                current_award = {'event': line, 'items': []}
-                result.append(current_award)
-            elif current_award:
-                current_award['items'].append(line)
-        return result
 
 
 
