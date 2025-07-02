@@ -55,7 +55,7 @@ RANDOMIZE_DOWNLOAD_DELAY = True
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 DOWNLOADER_MIDDLEWARES = {
-   "HeavenMovies.middlewares.HeavenmoviesDownloaderMiddleware": 543,
+    'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': None,
 }
 
 # Enable or disable extensions
