@@ -34,10 +34,10 @@ class MoviesSpider(scrapy.Spider):
     def parse_detail(self, response: HtmlResponse, item: HeavenmoviesItem):
         raw_lines = response.css('#Zoom ::text').getall()
         cleaned_lines = [re.sub(r'[\s\u3000\xa0\'◎]+', ' ', s).strip() for s in raw_lines if s.strip()]
-        print("清洗后的数据:", cleaned_lines)
+        # print("清洗后的数据:", cleaned_lines)
 
         parsed_data = self.parse_span_text_list(cleaned_lines)
-        print("解析后字典:", parsed_data)
+        # print("解析后字典:", parsed_data)
 
         item['title'] = parsed_data.get('title', None)
         item['year'] = parsed_data.get('year', None)
@@ -49,17 +49,7 @@ class MoviesSpider(scrapy.Spider):
         item['douban'] = parsed_data.get('douban', None)
         item['description'] = parsed_data.get('description', None)
         item['awards'] = parsed_data.get('awards', None)
-
-        # item['title'] = parsed_data.get('title', item['title'])
-        # item['year'] = parsed_data.get('year', item.get('year'))
-        # item['region'] = parsed_data.get('region', item['region'])
-        # item['language'] = parsed_data.get('language', item['language'])
-        # item['genre'] = parsed_data.get('genre', item['genre'])
-        # item['duration'] = parsed_data.get('duration', item['duration'])
-        # item['imdb'] = parsed_data.get('imdb', item['imdb'])
-        # item['douban'] = parsed_data.get('douban', item['douban'])
-        # item['description'] = parsed_data.get('description', item['description'])
-        # item['awards'] = parsed_data.get('awards', item['awards'])
+        item['magnet_link'] = response.css('#Zoom a[href^="magnet:"]::attr(href)').get()
 
         yield item
 
