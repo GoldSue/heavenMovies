@@ -31,7 +31,9 @@ class MoviesSpider(scrapy.Spider):
                 cb_kwargs={'item': movie_item},
             )
 
-    def parse_detail(self, response: HtmlResponse, item: HeavenmoviesItem):
+    def parse_detail(self, response, item=None):
+        if item is None:
+            item = HeavenmoviesItem()
         raw_lines = response.css('#Zoom ::text').getall()
         cleaned_lines = [re.sub(r'[\s\u3000\xa0\'◎]+', ' ', s).strip() for s in raw_lines if s.strip()]
         # print("清洗后的数据:", cleaned_lines)
